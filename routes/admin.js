@@ -13,7 +13,8 @@ const { Reports } = require('../models/report');
 const auth = require('../middlewares/auth')
 const createHttpError = require("http-errors");
 
-const {staffValidator,UpdatePasswordValidator, facilityValidator, patientValidator, reportValidator} = require('../validators/validators')
+const {staffValidator,UpdatePasswordValidator, facilityValidator, patientValidator, reportValidator} = require('../validators/validators');
+const { Appointments } = require('../models/appointments');
 
 // USER-DETAILS : USER-DETAILS : USER-DETAILS : USER-DETAILS
 router.get('/me',auth, async function(req,res,next){
@@ -102,7 +103,6 @@ router.get('/staff', async function(req,res,next){
                 return res.json(staffs)
             }else{
                 let staffs = await Staffs.find().sort({_id : 'descending'}).populate(populate)
-                console.log(staffs)
                 return res.json(staffs)
             }
         }
@@ -123,7 +123,6 @@ router.get('/staff', async function(req,res,next){
                 return res.json(staffs)
             }else{
                 let staffs = await Staffs.find({facilityadminid: staffid}).sort({_id : 'descending'}).populate(populate)
-                console.log(staffs)
                 return res.json(staffs)
             }
         }
@@ -512,5 +511,145 @@ router.put('/pdfreport/:id', upload.single('pdfreport'), async function(req,res,
         return res.status(400).send(error.message)
     }
 })
+
+// APPOINTMENT : APPOINTMENT : APPOINTMENT : APPOINTMENT : APPOINTMENT
+// CREATE_APPOINTMENT
+router.post('/appointment', async function(req,res,next){
+    try {
+       const {patientid,facilityadminid,assignedstaffid,morningsession,morningstart,morningend,afternoonsession,afternoonstart,afternoonend,eveningsession,eveningstart,eveningend} = req.body
+        let patientname = ""
+        let patient = []
+        if (patientid.match(/^[0-9a-fA-F]{24}$/)) {
+            patient = await Patients.findOne({_id : patientid})
+            patientname = patient.fullname
+        }  
+        let appointment =  await Appointments.create({patientid,facilityadminid,assignedstaffid,morningsession,morningstart,morningend,afternoonsession,afternoonstart,afternoonend,eveningsession,eveningstart,eveningend,patientname});  
+        let facilityAdmin = await Staffs.findOne({_id : facilityadminid})
+        let assignedstaff = await Staffs.findOne({_id : assignedstaffid})
+        appointment.patients = patient
+        appointment.facilityadmin = facilityAdmin
+        appointment.assignedstaff = assignedstaff
+        appointment.save()
+        return res.status(200).send('Appointment created successfully')
+    } catch (error) {
+       return res.status(401).send(error.message)
+    }
+})
+// READ_APPOINTMENT : READ_APPOINTMENT : READ_APPOINTMENT : READ_APPOINTMENT
+router.get('/appointments', async function(req,res,next){
+    try {
+        const {edit,q,sortAsc,sortDsc,staffid,role} = req.query
+        let populate = ['patients','facilityadmin','assignedstaff']
+        if(edit){
+            let appointment = await Appointments.findById(edit).populate(populate)
+            return res.json(appointment)
+        }
+        if(role === "admin"){ 
+            if(sortAsc){
+                let appointments = await Appointments.find().sort({_id : sortAsc}).populate(populate)
+                return res.json(appointments)
+            }
+            if(sortDsc){
+                let appointments = await Appointments.find().sort({_id : sortDsc}).populate(populate)
+                return res.json(appointments)
+            }
+        
+            if(q){
+                var regex = new RegExp(q, "i")
+                let appointments = await Appointments.find({patientname:regex}).sort({_id : 'descending'}).populate(populate)
+                return res.json(appointments)
+            }else{
+                let appointments = await Appointments.find().sort({_id : 'descending'}).populate(populate)
+                return res.json(appointments)
+            }
+        }
+      
+       if(role === "facilityadmin"){ 
+            if(sortAsc){
+                let appointments = await Appointments.find({facilityadminid: staffid}).sort({_id : sortAsc}).populate(populate)
+                return res.json(appointments)
+            }
+            if(sortDsc){
+                let appointments = await Appointments.find({facilityadminid: staffid}).sort({_id : sortDsc}).populate(populate)
+                return res.json(appointments)
+            }
+            
+            if(q){
+                var regex = new RegExp(q, "i")
+                let appointments = await Appointments.find({facilityadminid: staffid,fullname:regex}).sort({_id : 'descending'}).populate(populate)
+                return res.json(appointments)
+            }else{
+                let appointments = await Appointments.find({facilityadminid: staffid}).sort({_id : 'descending'}).populate(populate)
+                return res.json(appointments)
+            }
+        }
+
+        if(role === "caregiver"){ 
+            if(sortAsc){
+                let appointments = await Appointments.find({assignedstaffid: staffid}).sort({_id : sortAsc}).populate(populate)
+                return res.json(appointments)
+            }
+            if(sortDsc){
+                let appointments = await Appointments.find({assignedstaffid: staffid}).sort({_id : sortDsc}).populate(populate)
+                return res.json(appointments)
+            }
+            
+            if(q){
+                var regex = new RegExp(q, "i")
+                let appointments = await Appointments.find({assignedstaffid: staffid,fullname:regex}).sort({_id : 'descending'}).populate(populate)
+                return res.json(appointments)
+            }else{
+                let appointments = await Appointments.find({assignedstaffid: staffid}).sort({_id : 'descending'}).populate(populate)
+                return res.json(appointments)
+            }
+        }
+    } catch (error) {
+        return res.status(401).send(error.message)
+    }
+})
+// UPDATE_APPOINTMENT
+router.put('/appointment/:id', async function(req, res, next) {
+    try {
+        const{ patientid,facilityadminid,assignedstaffid,morningsession,morningstart,morningend,afternoonsession,afternoonstart,afternoonend,eveningsession,eveningstart,eveningend } = req.body
+        const id = req.params.id
+        let patientname = ""
+        let patient = []
+        if (patientid.match(/^[0-9a-fA-F]{24}$/)) {
+            patient = await Patients.findOne({_id : patientid})
+            patientname = patient.fullname
+        }  
+        let appointment =  await Appointments.findByIdAndUpdate(id,{patientid,facilityadminid,assignedstaffid,morningsession,morningstart,morningend,afternoonsession,afternoonstart,afternoonend,eveningsession,eveningstart,eveningend,patientname})
+        let facilityAdmin = await Staffs.findOne({_id : facilityadminid})
+        let assignedstaff = await Staffs.findOne({_id : assignedstaffid})
+        appointment.patients = patient
+        appointment.facilityadmin = facilityAdmin
+        appointment.assignedstaff = assignedstaff
+        appointment.save()
+        return res.status(200).send('Updated Successfully')
+    } catch (error) {
+        return res.status(401).send(error.message)
+    }
+});
+// UPDATE_APPOINTMENT_FEEDBACK
+router.put('/appointmentfeedback/:id', async function(req, res, next) {
+    try {
+        const{ morningcompleted,morningcancelled,afternooncompleted,afternooncancelled,eveningcompleted,eveningcancelled,caregivernote } = req.body
+        const id = req.params.id
+        await Appointments.findByIdAndUpdate(id,{morningcompleted,morningcancelled,afternooncompleted,afternooncancelled,eveningcompleted,eveningcancelled,caregivernote})
+        return res.status(200).send('Updated Successfully')
+    } catch (error) {
+        return res.status(401).send(error.message)
+    }
+});
+// DELETE_STAFF
+router.delete('/appointment/:id', async function(req, res, next) {
+    try {
+        const id = req.params.id
+        await Appointments.findByIdAndRemove(id)
+        return res.status(200).send('Deleted Successfully')
+    } catch (error) {
+        return res.status(401).send(error.message)
+    }
+});
 
 module.exports = router
