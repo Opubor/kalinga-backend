@@ -20,41 +20,9 @@ const { Appointments } = require('../models/appointments');
 router.get('/me',auth, async function(req,res,next){
     try {
         const currentUser = await getStaff(req.staff.id)
-        console.log(currentUser)
         return res.json(currentUser)
     } catch (error) {
         return res.status(401).send(error.message)
-    }
-})
-
-// FIRE-BASE : FIRE-BASE : FIRE-BASE : FIRE-BASE
-const firebaseConfig = {
-    apiKey: "AIzaSyAL6tFDnBhbOO7_ejvsOI1qlMR-fvl6g8o",
-    authDomain: "kalinga-23865.firebaseapp.com",
-    projectId: "kalinga-23865",
-    storageBucket: "kalinga-23865.appspot.com",
-    messagingSenderId: "922179444759",
-    appId: "1:922179444759:web:927b7b995c45e37d263c52",
-    measurementId: "G-GHJ3QSVJD8"
-  };
-initializeApp(firebaseConfig);
-const storage = getStorage();
-const upload = multer({storage: multer.memoryStorage()});
-
-// STAFF_PROFILE-PIC : STAFF_PROFILE-PIC : STAFF_PROFILE-PIC : STAFF_PROFILE-PIC 
-router.put('/staffpic/:id', upload.single('filename'), async function(req,res,next){
-    try {
-        const id = req.params.id
-        const storageRef = ref(storage, `files/${req.file.originalname + " " + id}`)
-        const metadata = {
-            contentType: req.file.mimetype
-        }
-        const snapshot = await uploadBytesResumable(storageRef, req.file.buffer, metadata);
-        const profilepic = await getDownloadURL(snapshot.ref)
-        await Staffs.findByIdAndUpdate(id,{profilepic})
-        return res.status(200).send('Updated Successfully')
-    } catch (error) {
-        return res.status(400).send(error.message)
     }
 })
 
@@ -62,8 +30,8 @@ router.put('/staffpic/:id', upload.single('filename'), async function(req,res,ne
 router.post('/staff', async function(req,res,next){
     try {
        const {fullname, phonenumber, email, dob, role, street, city, state, zipcode, password, facilityadminid, facilityname} = req.body
-    //    const {error} = staffValidator.validate({fullname, phonenumber, email, dob, role, street, city, state, zipcode, password})
-    //    if (error) throw new createHttpError.BadRequest(error.details[0].message);
+       const {error} = staffValidator.validate({fullname, phonenumber, email, dob, role, street, city, state, zipcode, password})
+       if (error) throw new createHttpError.BadRequest(error.details[0].message);
        const date = new Date();
        const uniqueid = date.getFullYear() + "-" + randomBytes(2).toString("hex")
        let usedEmail = await Staffs.findOne({email : email})
@@ -469,49 +437,6 @@ router.delete('/report/:id', async function(req, res, next) {
     }
 });
 
-router.put('/picturereport/:id', upload.single('picturereport'), async function(req,res,next){
-    try {
-        const id = req.params.id
-        const storageRef = ref(storage, `files/${req.file.originalname + " " + id}`)
-        const metadata = {
-            contentType: req.file.mimetype
-        }
-        const snapshot = await uploadBytesResumable(storageRef, req.file.buffer, metadata);
-        const picturereport = await getDownloadURL(snapshot.ref)
-        await Reports.findByIdAndUpdate(id,{picturereport})
-        return res.status(200).send('Updated Successfully')
-        // return res.send({
-        //     message: 'file uploaded to firebase storage',
-        //     name: req.file.originalname,
-        //     type: req.file.mimetype,
-        //     downloadURL: picturereport
-        // })
-    } catch (error) {
-        return res.status(400).send(error.message)
-    }
-})
-router.put('/pdfreport/:id', upload.single('pdfreport'), async function(req,res,next){
-    try {
-        const id = req.params.id
-        const storageRef = ref(storage, `files/${req.file.originalname + " " + id}`)
-        const metadata = {
-            contentType: req.file.mimetype
-        }
-        const snapshot = await uploadBytesResumable(storageRef, req.file.buffer, metadata);
-        const pdfreport = await getDownloadURL(snapshot.ref)
-        await Reports.findByIdAndUpdate(id,{pdfreport})
-        return res.status(200).send('Updated Successfully')
-        // return res.send({
-        //     message: 'file uploaded to firebase storage',
-        //     name: req.file.originalname,
-        //     type: req.file.mimetype,
-        //     downloadURL: pdfreport
-        // })
-    } catch (error) {
-        return res.status(400).send(error.message)
-    }
-})
-
 // APPOINTMENT : APPOINTMENT : APPOINTMENT : APPOINTMENT : APPOINTMENT
 // CREATE_APPOINTMENT
 router.post('/appointment', async function(req,res,next){
@@ -641,7 +566,7 @@ router.put('/appointmentfeedback/:id', async function(req, res, next) {
         return res.status(401).send(error.message)
     }
 });
-// DELETE_STAFF
+// DELETE_APPOINTMENT
 router.delete('/appointment/:id', async function(req, res, next) {
     try {
         const id = req.params.id
@@ -652,4 +577,83 @@ router.delete('/appointment/:id', async function(req, res, next) {
     }
 });
 
+// FIRE-BASE : FIRE-BASE : FIRE-BASE : FIRE-BASE
+const firebaseConfig = {
+    apiKey: "AIzaSyAL6tFDnBhbOO7_ejvsOI1qlMR-fvl6g8o",
+    authDomain: "kalinga-23865.firebaseapp.com",
+    projectId: "kalinga-23865",
+    storageBucket: "kalinga-23865.appspot.com",
+    messagingSenderId: "922179444759",
+    appId: "1:922179444759:web:927b7b995c45e37d263c52",
+    measurementId: "G-GHJ3QSVJD8"
+  };
+initializeApp(firebaseConfig);
+const storage = getStorage();
+const upload = multer({storage: multer.memoryStorage()});
+
+
+
+// STAFF_PROFILE-PICTURE : STAFF_PROFILE-PICTURE : STAFF_PROFILE-PICTURE : STAFF_PROFILE-PICTURE 
+router.put('/staffpic/:id', upload.single('filename'), async function(req,res,next){
+    try {
+        const id = req.params.id
+        const storageRef = ref(storage, `files/${req.file.originalname + " " + id}`)
+        const metadata = {
+            contentType: req.file.mimetype
+        }
+        const snapshot = await uploadBytesResumable(storageRef, req.file.buffer, metadata);
+        const profilepic = await getDownloadURL(snapshot.ref)
+        await Staffs.findByIdAndUpdate(id,{profilepic})
+        return res.status(200).send('Updated Successfully')
+    } catch (error) {
+        return res.status(400).send("Please select an image")
+        // return res.status(400).send(error.message)
+    }
+})
+
+// REPORT PICTURE
+router.put('/picturereport/:id', upload.single('picturereport'), async function(req,res,next){
+    try {
+        const id = req.params.id
+        const storageRef = ref(storage, `files/${req.file.originalname + " " + id}`)
+        const metadata = {
+            contentType: req.file.mimetype
+        }
+        const snapshot = await uploadBytesResumable(storageRef, req.file.buffer, metadata);
+        const picturereport = await getDownloadURL(snapshot.ref)
+        await Reports.findByIdAndUpdate(id,{picturereport})
+        return res.status(200).send('Updated Successfully')
+        // return res.send({
+        //     message: 'file uploaded to firebase storage',
+        //     name: req.file.originalname,
+        //     type: req.file.mimetype,
+        //     downloadURL: picturereport
+        // })
+    } catch (error) {
+        return res.status(400).send(error.message)
+    }
+})
+
+// REPORT PDF/DOCUMENT
+router.put('/pdfreport/:id', upload.single('pdfreport'), async function(req,res,next){
+    try {
+        const id = req.params.id
+        const storageRef = ref(storage, `files/${req.file.originalname + " " + id}`)
+        const metadata = {
+            contentType: req.file.mimetype
+        }
+        const snapshot = await uploadBytesResumable(storageRef, req.file.buffer, metadata);
+        const pdfreport = await getDownloadURL(snapshot.ref)
+        await Reports.findByIdAndUpdate(id,{pdfreport})
+        return res.status(200).send('Updated Successfully')
+        // return res.send({
+        //     message: 'file uploaded to firebase storage',
+        //     name: req.file.originalname,
+        //     type: req.file.mimetype,
+        //     downloadURL: pdfreport
+        // })
+    } catch (error) {
+        return res.status(400).send(error.message)
+    }
+})
 module.exports = router
